@@ -1,0 +1,32 @@
+containers:
+  zookeeper:
+    uids: [0-65535]
+    gids: [0-65535]
+    setup:
+    - !Ubuntu trusty
+    - !UbuntuUniverse ~
+    - !Install [zookeeper]
+    - !Sh ln -sfn /work/zk-conf /etc/zookeeper/conf
+    volumes:
+      /var/lib/zookeeper: !Tmpfs {size: 100Mi}
+
+commands:
+  three-zookeepers: !Supervise
+    description: Run three zookeepers
+    children:
+      zk1: !Command
+        container: zookeeper
+        run: |
+          echo 1 > /var/lib/zookeeper/myid
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo1.cfg
+      zk2: !Command
+        container: zookeeper
+        run: |
+          echo 2 > /var/lib/zookeeper/myid
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo2.cfg
+      zk3: !Command
+        container: zookeeper
+        run: |
+          echo 3 > /var/lib/zookeeper/myid
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo3.cfg
+

@@ -1,0 +1,3 @@
+#!/bin/sh
+test -d run || mkdir run
+test -d run/zk || mkdir run/zk
