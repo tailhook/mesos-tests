@@ -16,17 +16,20 @@ commands:
     children:
       zk1: !Command
         container: zookeeper
+        network: {ip: 172.18.0.1}
         run: |
           echo 1 > /var/lib/zookeeper/myid
-          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo1.cfg
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
       zk2: !Command
         container: zookeeper
+        network: {ip: 172.18.0.2}
         run: |
           echo 2 > /var/lib/zookeeper/myid
-          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo2.cfg
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
       zk3: !Command
         container: zookeeper
+        network: {ip: 172.18.0.3}
         run: |
           echo 3 > /var/lib/zookeeper/myid
-          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground zoo3.cfg
+          exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
 
