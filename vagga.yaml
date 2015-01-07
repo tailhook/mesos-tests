@@ -9,6 +9,13 @@ containers:
     - !Sh ln -sfn /work/zk-conf /etc/zookeeper/conf
     volumes:
       /var/lib/zookeeper: !Tmpfs {size: 100Mi}
+  python:
+    uids: [0-65535]
+    gids: [0-65535]
+    setup:
+    - !Ubuntu trusty
+    - !Py3Install [kazoo]
+
 
 commands:
   three-zookeepers: !Supervise
@@ -32,4 +39,8 @@ commands:
         run: |
           echo 3 > /var/lib/zookeeper/myid
           exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
+      py: !Command
+        container: python
+        network: {ip: 172.18.0.254}
+        run: python3 zk-test.py
 
