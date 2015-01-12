@@ -14,7 +14,14 @@ containers:
     gids: [0-65535]
     setup:
     - !Ubuntu trusty
-    - !Py3Install [kazoo]
+    - !Install [iptables]
+    - !Py3Install [kazoo, colorlog]
+    - !EnsureDir /vagga/bin
+    environ:
+      PATH: /sbin:/bin:/usr/sbin:/usr/bin:/vagga/bin
+    volumes:
+      /vagga/bin: !VaggaBin ~
+      /tmp: !Tmpfs { size: 1Mi }
 
 
 commands:
@@ -39,8 +46,7 @@ commands:
         run: |
           echo 3 > /var/lib/zookeeper/myid
           exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
-      py: !Command
+      py: !BridgeCommand
         container: python
-        network: {ip: 172.18.0.254}
         run: python3 zk-test.py
 
