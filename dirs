@@ -1,3 +1,8 @@
 #!/bin/sh
-test -d run || mkdir run
-test -d run/zk || mkdir run/zk
+mkdir run
+mkdir run/zk
+mkdir run/mm{1,2,3}   # mesos-master workdir
+mkdir run/mm{1,2,3}l  # mesos-master logs
+mkdir run/ms{1,2,3}   # mesos-slave workdir (incuding children logs)
+mkdir run/ms{1,2,3}l  # mesos-slave logs
+

@@ -9,23 +9,43 @@ containers:
     - !Sh ln -sfn /work/zk-conf /etc/zookeeper/conf
     volumes:
       /var/lib/zookeeper: !Tmpfs {size: 100Mi}
+      /tmp: !Tmpfs {size: 1Mi}
+  mesos:
+    uids: [0-65535]
+    gids: [0-65535]
+    setup:
+    - !Ubuntu trusty
+    - !Sh "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E56151BF"
+    - !UbuntuRepo
+      url: http://repos.mesosphere.io/ubuntu
+      suite: trusty
+      components: [main]
+    - !Install [mesos, marathon]
+    - !Sh ln -sfn /tmp/vagga/hosts /etc/hosts
+    - !UbuntuUniverse ~
+    - !Install [webfs]  # packages we are going to run under mesos
+    volumes:
+      /tmp: !Tmpfs {size: 10Mi}
   python:
     uids: [0-65535]
     gids: [0-65535]
     setup:
     - !Ubuntu trusty
-    - !Install [iptables]
-    - !Py3Install [kazoo, colorlog]
+    - !Install [iptables, wget, curl]
+    - !Py3Install [kazoo, colorlog, zk-shell]
     - !EnsureDir /vagga/bin
+    - !Sh ln -sfn /tmp/vagga/hosts /etc/hosts
     environ:
-      PATH: /sbin:/bin:/usr/sbin:/usr/bin:/vagga/bin
+      PATH: /sbin:/bin:/usr/sbin:/usr/bin:/vagga/bin:/usr/local/bin
+      HOME: /work/run    # for zk-shell as well as /local/bin
+      LANG: en_US.UTF-8  # for zk-shell
     volumes:
       /vagga/bin: !VaggaBin ~
       /tmp: !Tmpfs { size: 1Mi }
 
 
 commands:
-  three-zookeepers: !Supervise
+  run: !Supervise
     description: Run three zookeepers
     children:
       zk1: !Command
@@ -46,7 +66,134 @@ commands:
         run: |
           echo 3 > /var/lib/zookeeper/myid
           exec /usr/share/zookeeper/bin/zkServer.sh start-foreground
-      py: !BridgeCommand
-        container: python
-        run: python3 zk-test.py
 
+      mesos-master1: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.11
+          ports: {15050: 5050}
+        run:
+        - /usr/sbin/mesos-master
+        - --zk=zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --work_dir=/work/run/mm1
+        - --log_dir=/work/run/mm1l
+        - --quorum=2
+        - --quiet=true
+        - --logging_level=WARNING
+      mesos-master2: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.12
+          ports: {25050: 5050}
+        run:
+        - /usr/sbin/mesos-master
+        - --zk=zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --work_dir=/work/run/mm2
+        - --log_dir=/work/run/mm2l
+        - --quorum=2
+        - --quiet=true
+        - --logging_level=WARNING
+      mesos-master3: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.13
+          ports: {35050: 5050}
+        run:
+        - /usr/sbin/mesos-master
+        - --zk=zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --work_dir=/work/run/mm3
+        - --log_dir=/work/run/mm3l
+        - --quorum=2
+        - --quiet=true
+        - --logging_level=WARNING
+
+      mesos-slave1: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.21
+          ports: {15051: 5051}
+        run: |
+          mkdir /tmp/srv
+          hostname > /tmp/srv/hostname
+          exec /usr/sbin/mesos-slave \
+            --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
+            --work_dir=/work/run/ms1 \
+            --log_dir=/work/run/ms1l
+      mesos-slave2: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.22
+          ports: {25051: 5051}
+        run: |
+          mkdir /tmp/srv
+          hostname > /tmp/srv/hostname
+          exec /usr/sbin/mesos-slave \
+            --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
+            --work_dir=/work/run/ms2 \
+            --log_dir=/work/run/ms2l
+      mesos-slave3: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.23
+          ports: {35051: 5051}
+        run: |
+          mkdir /tmp/srv
+          hostname > /tmp/srv/hostname
+          exec /usr/sbin/mesos-slave \
+            --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
+            --work_dir=/work/run/ms3 \
+            --log_dir=/work/run/ms3l
+
+      marathon1: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.31
+          ports: {18080: 8080}
+        run:
+        - java
+        - -Xmx512m
+        - -cp
+        - /usr/local/bin/marathon
+        - mesosphere.marathon.Main
+        - --ha
+        - --master
+        - zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --zk
+        - zk://zk1:2181,zk2:2181,zk3:2181/marathon
+      marathon2: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.32
+          ports: {28080: 8080}
+        run:
+        - java
+        - -Xmx512m
+        - -cp
+        - /usr/local/bin/marathon
+        - mesosphere.marathon.Main
+        - --ha
+        - --master
+        - zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --zk
+        - zk://zk1:2181,zk2:2181,zk3:2181/marathon
+      marathon3: !Command
+        container: mesos
+        network:
+          ip: 172.18.0.33
+          ports: {38080: 8080}
+        run:
+        - java
+        - -Xmx512m
+        - -cp
+        - /usr/local/bin/marathon
+        - mesosphere.marathon.Main
+        - --ha
+        - --master
+        - zk://zk1:2181,zk2:2181,zk3:2181/mesos
+        - --zk
+        - zk://zk1:2181,zk2:2181,zk3:2181/marathon
+
+      # Useful to check some things out
+      #bash: !BridgeCommand
+      #  container: python
+      #  run: bash
