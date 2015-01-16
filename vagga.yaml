@@ -31,7 +31,7 @@ containers:
     gids: [0-65535]
     setup:
     - !Ubuntu trusty
-    - !Install [iptables, wget, curl]
+    - !Install [iptables, wget, curl, python3-requests]
     - !Py3Install [kazoo, colorlog, zk-shell]
     - !EnsureDir /vagga/bin
     - !Sh ln -sfn /tmp/vagga/hosts /etc/hosts
@@ -46,7 +46,7 @@ containers:
 
 commands:
   run: !Supervise
-    description: Run three zookeepers
+    description: Run mesos/marathon startup test
     children:
       zk1: !Command
         container: zookeeper
@@ -115,10 +115,12 @@ commands:
         run: |
           mkdir /tmp/srv
           hostname > /tmp/srv/hostname
+          rm -rf /work/run/ms1/meta
           exec /usr/sbin/mesos-slave \
             --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
             --work_dir=/work/run/ms1 \
-            --log_dir=/work/run/ms1l
+            --log_dir=/work/run/ms1l \
+            > /work/run/ms1l/stderr 2>&1
       mesos-slave2: !Command
         container: mesos
         network:
@@ -127,10 +129,12 @@ commands:
         run: |
           mkdir /tmp/srv
           hostname > /tmp/srv/hostname
+          rm -rf /work/run/ms2/meta
           exec /usr/sbin/mesos-slave \
             --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
             --work_dir=/work/run/ms2 \
-            --log_dir=/work/run/ms2l
+            --log_dir=/work/run/ms2l \
+            > /work/run/ms1l/stderr 2>&1
       mesos-slave3: !Command
         container: mesos
         network:
@@ -139,10 +143,12 @@ commands:
         run: |
           mkdir /tmp/srv
           hostname > /tmp/srv/hostname
+          rm -rf /work/run/ms3/meta
           exec /usr/sbin/mesos-slave \
             --master=zk://zk1:2181,zk2:2181,zk3:2181/mesos \
             --work_dir=/work/run/ms3 \
-            --log_dir=/work/run/ms3l
+            --log_dir=/work/run/ms3l \
+            > /work/run/ms1l/stderr 2>&1
 
       marathon1: !Command
         container: mesos
@@ -192,6 +198,10 @@ commands:
         - zk://zk1:2181,zk2:2181,zk3:2181/mesos
         - --zk
         - zk://zk1:2181,zk2:2181,zk3:2181/marathon
+
+      bash: !BridgeCommand
+        container: python
+        run: python3 mesos-startup.py
 
       # Useful to check some things out
       #bash: !BridgeCommand
