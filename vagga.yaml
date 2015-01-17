@@ -201,7 +201,7 @@ commands:
 
       bash: !BridgeCommand
         container: python
-        run: python3 mesos-startup.py
+        run: python3 mesos-death.py
 
       # Useful to check some things out
       #bash: !BridgeCommand

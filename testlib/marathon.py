@@ -14,7 +14,7 @@ class Marathons(object):
                                 for h in hosts)
 
     def wait_all_accessible(self):
-        restlib.wait_all_answer(self.status_urls)
+        return restlib.wait_all_answer(self.status_urls)
 
 
     def start(self, cli, instances=1):
@@ -31,11 +31,19 @@ class Marathons(object):
             }))
         assert response.status_code == 201, response
 
-    def find_app(self, name, instances=1):
+    def wait_app_instances(self, name, instances=1):
         response = restlib.wait_any_answer(
             ['http://{}:8080/v2/apps/{}'.format(host, name)
              for host in self.hosts],
             lambda resp: len(resp.json()['app']['tasks']) == instances)
+        json = response.json()
+        return [(task['host'], task['ports'][0])
+                for task in json['app']['tasks']]
+
+    def get_app_instances(self, name):
+        response = restlib.wait_any_answer(
+            ['http://{}:8080/v2/apps/{}'.format(host, name)
+             for host in self.hosts])
         json = response.json()
         return [(task['host'], task['ports'][0])
                 for task in json['app']['tasks']]

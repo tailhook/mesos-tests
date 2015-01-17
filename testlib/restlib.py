@@ -4,6 +4,7 @@ import requests
 
 
 def wait_all_answer(urls, predicate=lambda x: True):
+    urls = list(urls)
     while True:
         data = {}
         for u in urls:
