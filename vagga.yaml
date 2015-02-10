@@ -159,7 +159,7 @@ commands:
         - java
         - -Xmx512m
         - -cp
-        - /usr/local/bin/marathon
+        - /usr/bin/marathon
         - mesosphere.marathon.Main
         - --ha
         - --master
@@ -175,7 +175,7 @@ commands:
         - java
         - -Xmx512m
         - -cp
-        - /usr/local/bin/marathon
+        - /usr/bin/marathon
         - mesosphere.marathon.Main
         - --ha
         - --master
@@ -191,7 +191,7 @@ commands:
         - java
         - -Xmx512m
         - -cp
-        - /usr/local/bin/marathon
+        - /usr/bin/marathon
         - mesosphere.marathon.Main
         - --ha
         - --master
